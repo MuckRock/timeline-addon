@@ -43,28 +43,7 @@ var mostOccsInAYear = 0;
 var currentYear;
 var sortedOccs = [];
 
-var throttledUseOccs = simpleThrottle(useOccs, 1000 / 30);
-
-function simpleThrottle(fn, msWait) {
-  var lastCallMS;
-  var timeoutKey;
-  return function debounceWrap() {
-    const currentMS = new Date().getTime();
-    if (lastCallMS === undefined || currentMS - lastCallMS >= msWait) {
-      lastCallMS = currentMS;
-      timeoutKey = null;
-      fn();
-    } else {
-      // Queue it, if it's not already queued.
-      if (!timeoutKey) {
-        timeoutKey = setTimeout(
-          debounceWrap,
-          msWait - (currentMS - lastCallMS) + 1
-        );
-      }
-    }
-  };
-}
+var throttledUseOccs = _.throttle(useOccs, 1000 / 30);
 
 function updateStateWithOcc(occ) {
   if (!occ) {
@@ -402,8 +381,7 @@ function getTransformForYear(year, i) {
 function onDocItemClick(e, occ) {
   docFrameSel.attr(
     'src',
-    `https://embed.documentcloud.org/documents/${occ.document.id}/#document/p${
-      occ.page + 1
+    `https://embed.documentcloud.org/documents/${occ.document.id}/#document/p${occ.page + 1
     }`
   );
   docContainerSel.attr('title', occ.document.title);
