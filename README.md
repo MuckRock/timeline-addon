@@ -24,4 +24,4 @@ It's in development, so you should know:
 - The left column will contain years found in the documents. Click on bars there to change the frame of the month column next to it and to scroll the dates column next to it so that dates from that year scroll into view.
 - You can click a date to see a list of documents containing that date.
 - You can click on an item in that list to see that document.
-- The documents come in 25 at a time and get searched and graphed as they come in. Right now, there's nothing that tell you it's completely done.
+- The documents come in 25 at a time and get searched and graphed as they come in. Right now, it takes a while to complete, but there is a message in the corner that will tell you when it's done.
