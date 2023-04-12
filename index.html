@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Document timeline</title>
+  <link rel="stylesheet" href="app.css" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+</head>
+
+<body>
+  <div class="control-pane">
+    <div id="status-message" class="hidden"></div>
+    <button id="year-map-toggle-button">Hide year map</button>
+    <button id="month-map-toggle-button">Hide month map</button>
+    <button id="doc-close-button">Close document</button>
+  </div>
+
+  <main class="timelines-container">
+    <div class="map-container year-map-container">
+      <h3 class="title">Years</h3>
+      <svg class="year-map high-level-map" height="100vh">
+        <g class="zoom-root">
+          <g class="timeline-layer"></g>
+        </g>
+      </svg>
+    </div>
+
+    <div class="map-container month-map-container">
+      <h3 class="title">Months</h3>
+      <svg class="month-map high-level-map" height="100vh">
+        <g class="timeline-layer"></g>
+      </svg>
+    </div>
+
+    <svg class="day-map" width="320" height="1000">
+      <defs>
+        <g id="paper-line-def">
+          <line width="20" x1="6" x2="18" y1="0" y2="0" stroke-width="2px" stroke="hsla(0, 0%, 0%, 0.8)" />
+        </g>
+        <g id="paper-icon-def">
+          <rect width="24" height="30" fill="#fff" stroke-width="4px" stroke="hsla(0, 0%, 0%, 0.8)">
+          </rect>
+          <use href="#paper-line-def" y="10" />
+          <use href="#paper-line-def" y="14" />
+          <use href="#paper-line-def" y="18" />
+          <use href="#paper-line-def" y="22" />
+        </g>
+        <g id="doc-icon-def">
+          <g class="doc-icon">
+            <use href="#paper-icon-def" x="0" y="0" />
+            <use href="#paper-icon-def" x="8" y="8" />
+          </g>
+        </g>
+      </defs>
+
+      <g class="timeline-layer">
+        <line class="timeline" x1="1" y1="0" x2="1" y2="100%" />
+      </g>
+      <g class="doc-lists-layer"></g>
+    </svg>
+  </main>
+
+  <div class="doc-container hidden">
+    <div class="citation">
+      <span>Date citation:</span>
+      <div class="excerpt"></div>
+    </div>
+    <iframe id="doc-frame" title="" width="50%" height="90vh"
+      sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-popups-to-escape-sandbox"></iframe>
+  </div>
+
+  <div id="version-info"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.0.0/d3.min.js"></script>
+  <script src="vendor/find-dates.js"></script>
+  <script src="app.js"></script>
+</body>
+
+</html>
