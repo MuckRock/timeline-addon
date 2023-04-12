@@ -1,7 +1,8 @@
 /* global findDates */
 
-const selfURL = "https://api.www.documentcloud.org/api/users/me/";
-const searchURL = "https://api.www.documentcloud.org/api/documents/search?q=*:*&order_by=created_at";
+const selfURL = 'https://api.www.documentcloud.org/api/users/me/';
+const searchURL =
+  'https://api.www.documentcloud.org/api/documents/search?q=*:*&order_by=created_at';
 
 var defaultFetchOpts = { credentials: 'include', mode: 'cors' };
 var entityCount = 0;
@@ -40,17 +41,27 @@ var occsByYear = {};
 var dayGroupsByDateStringByYear = {};
 var mostOccsInAYear = 0;
 var currentYear;
+var sortedOccs = [];
 
-var debouncedUpdateState = debounce(updateStateWithOcc, 1 / 30);
+var throttledUseOccs = simpleThrottle(useOccs, 1000 / 30);
 
-function debounce(fn, seconds) {
+function simpleThrottle(fn, msWait) {
+  var lastCallMS;
   var timeoutKey;
   return function debounceWrap() {
-    if (timeoutKey) {
-      setTimeout(fn, seconds * 1000, ...arguments);
+    const currentMS = new Date().getTime();
+    if (lastCallMS === undefined || currentMS - lastCallMS >= msWait) {
+      lastCallMS = currentMS;
       timeoutKey = null;
+      fn();
     } else {
-      fn.apply(fn, arguments);
+      // Queue it, if it's not already queued.
+      if (!timeoutKey) {
+        timeoutKey = setTimeout(
+          debounceWrap,
+          msWait - (currentMS - lastCallMS) + 1
+        );
+      }
     }
   };
 }
@@ -60,12 +71,12 @@ function updateStateWithOcc(occ) {
     return;
   }
   putInYearDict(occ);
-  var sortedOccs = Object.keys(occsByYear).sort();
+  sortedOccs = Object.keys(occsByYear).sort();
   if (sortedOccs.length < 1) {
     throw new Error('No years found in data.');
   }
 
-  useOccs(sortedOccs);
+  throttledUseOccs();
 
   // Updates mostOccsInAYear.
   function putInYearDict(occ) {
@@ -140,13 +151,13 @@ yearMapToggleSel.on('click', onYearMapToggleClick);
 monthMapToggleSel.on('click', onMonthMapToggleClick);
 docCloseSel.on('click', onDocCloseClick);
 
-((async function init() {
+(async function init() {
   try {
     let errorHappenedWhileFetching = true;
 
     let hashParts = window.location.hash.split('=');
     const projectId = hashParts.length > 1 ? hashParts[1] : undefined;
-    console.log(projectId)
+    console.log(projectId);
 
     var nextDocsURL;
 
@@ -165,7 +176,7 @@ docCloseSel.on('click', onDocCloseClick);
           let results = searchData.results.map(distillResult);
           // TODO: Queue to limit concurrent requests. For now, just do them in serial and use some self-rate-limiting.
           for (let i = 0; i < results.length; ++i) {
-            await new Promise((resolve) => setTimeout(resolve, 1000));
+            await new Promise((resolve) => setTimeout(resolve, 500));
             await collectOccFromDocResult(results[i]);
           }
         }
@@ -188,14 +199,14 @@ docCloseSel.on('click', onDocCloseClick);
   } catch (error) {
     handleError(error);
   }
-})());
+})();
 
 function handleError(error) {
   // TODO
   console.error(error);
 }
 
-function useOccs(sortedOccs) {
+function useOccs() {
   if (!currentYear) {
     currentYear = sortedOccs[0];
   }
@@ -283,15 +294,9 @@ function renderYearMap(sortedOccs) {
 
   bars.exit().remove();
 
-  var newBars = bars
-    .enter()
-    .append('g')
-    .classed('year', true);
+  var newBars = bars.enter().append('g').classed('year', true);
 
-  newBars
-    .append('rect')
-    .classed('bar', true)
-    .attr('height', yearHeight)
+  newBars.append('rect').classed('bar', true).attr('height', yearHeight);
   newBars
     .append('text')
     .attr('x', 5)
@@ -304,12 +309,13 @@ function renderYearMap(sortedOccs) {
     .classed('doc-count', true);
 
   var existingBars = newBars.merge(bars);
-  existingBars.select('.bar')
+  existingBars
+    .select('.bar')
     .attr('width', (year) => yearWidthScale(occsByYear[year].length));
-  existingBars.select('.year-label')
-    .text((year) => year);
-  existingBars.select('.doc-count')
-    .text((year) => `${occsByYear[year].length} documents`)
+  existingBars.select('.year-label').text((year) => year);
+  existingBars
+    .select('.doc-count')
+    .text((year) => `${occsByYear[year].length} documents`);
   existingBars.attr('transform', getTransformForYear);
   existingBars.on('click', onYearClick);
 }
@@ -396,7 +402,9 @@ function getTransformForYear(year, i) {
 function onDocItemClick(e, occ) {
   docFrameSel.attr(
     'src',
-    `https://embed.documentcloud.org/documents/${occ.document.id}/#document/p${occ.page + 1}`
+    `https://embed.documentcloud.org/documents/${occ.document.id}/#document/p${
+      occ.page + 1
+    }`
   );
   docContainerSel.attr('title', occ.document.title);
   docContainerSel.select('.excerpt').text(`"…${occ.excerpt}…"`);
@@ -480,7 +488,7 @@ function distillResult(result) {
     canonical_url: result.canonical_url,
     slug: result.slug,
     title: result.title,
-    pageTextURL: `${asset_url}documents/${result.id}/${result.slug}.txt.json`
+    pageTextURL: `${asset_url}documents/${result.id}/${result.slug}.txt.json`,
   };
 }
 
@@ -489,19 +497,27 @@ async function collectOccFromDocResult({
   canonical_url,
   slug,
   title,
-  pageTextURL
+  pageTextURL,
 }) {
   try {
     let res = await fetch(pageTextURL, { mode: 'cors' });
     let pageInfo = await res.json();
-    pageInfo.pages.map(getOccurrencesForPage).flat().forEach(debouncedUpdateState);
+    pageInfo.pages
+      .map(getOccurrencesForPage)
+      .flat()
+      .forEach(updateStateWithOcc);
   } catch (error) {
-    console.error(`Error while getting pages for ${slug} at ${pageTextURL}`, error);
+    console.error(
+      `Error while getting pages for ${slug} at ${pageTextURL}`,
+      error
+    );
   }
 
   function getOccurrencesForPage({ page, contents }) {
     var dateResults = findDates(contents);
-    return dateResults.filter(({ match }) => new Date(match) >= minReasonableDate).map(getOccurrenceForDateResult);
+    return dateResults
+      .filter(({ match }) => new Date(match) >= minReasonableDate)
+      .map(getOccurrenceForDateResult);
 
     function getOccurrenceForDateResult({ match, index }) {
       const endPos = index + match.length;
@@ -518,13 +534,13 @@ async function collectOccFromDocResult({
           entity: {
             id: entityId,
             title: date.toLocaleDateString(),
-            date: date.toISOString()
+            date: date.toISOString(),
           },
           document: {
             id,
             title,
-            url: canonical_url
-          }
+            url: canonical_url,
+          },
         };
       } catch (error) {
         console.error('Error while trying to create date for', match);
