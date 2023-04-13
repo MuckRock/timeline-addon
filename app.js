@@ -18,6 +18,9 @@ const dayHeight = 64;
 const maxBarLength = 200;
 const dayTimelineHeight = 365 * dayHeight;
 const minReasonableDate = new Date(1000, 0, 0);
+const maxRenderFPS = 2;
+const pauseBetweenResultPageGetsMS = 1000;
+const defaultProjectId = '210820';
 
 var englishMonthNames = [
   'January',
@@ -39,17 +42,17 @@ var occsByYear = {};
 var dayGroupsByDateStringByYear = {};
 var mostOccsInAYear = 0;
 var currentYear;
-var sortedOccs = [];
+var yearsUsedInDocs = [];
 
-var throttledUseOccs = _.throttle(useOccs, 1000 / 30);
+var throttledUseOccs = _.throttle(useOccs, 1000 / maxRenderFPS);
 
 function updateStateWithOcc(occ) {
   if (!occ) {
     return;
   }
   putInYearDict(occ);
-  sortedOccs = Object.keys(occsByYear).sort();
-  if (sortedOccs.length < 1) {
+  yearsUsedInDocs = Object.keys(occsByYear); //.sort();
+  if (yearsUsedInDocs.length < 1) {
     throw new Error('No years found in data.');
   }
 
@@ -71,7 +74,7 @@ function updateStateWithOcc(occ) {
       occsByYear[year] = occsForYear;
     }
     occsForYear.push(occ);
-    occsForYear.sort((a, b) => (a.entity.date < b.entity.date ? -1 : 1));
+    //occsForYear.sort(compareOccDates);
 
     if (occsForYear.length > mostOccsInAYear) {
       mostOccsInAYear = occsForYear.length;
@@ -100,7 +103,7 @@ function updateStateWithOcc(occ) {
       dayGroupsForYear[dateString] = dayGroup;
     }
     dayGroup.occs.push(occ);
-    dayGroup.occs.sort();
+    // dayGroup.occs.sort();
   }
 }
 
@@ -153,14 +156,16 @@ docCloseSel.on('click', onDocCloseClick);
     // }
 
     do {
-      res = await fetch(nextDocsURL, defaultFetchOpts);
+      let res = await fetch(nextDocsURL, defaultFetchOpts);
       if (res.ok) {
         let searchData = await res.json();
         if (searchData.results) {
           let results = searchData.results.map(distillResult);
           // TODO: Queue to limit concurrent requests. For now, just do them in serial and use some self-rate-limiting.
           for (let i = 0; i < results.length; ++i) {
-            await new Promise((resolve) => setTimeout(resolve, 500));
+            await new Promise((resolve) =>
+              setTimeout(resolve, pauseBetweenResultPageGetsMS)
+            );
             await collectOccFromDocResult(results[i]);
           }
         }
@@ -192,7 +197,7 @@ function handleError(error) {
 
 function useOccs() {
   if (!currentYear) {
-    currentYear = sortedOccs[0];
+    currentYear = yearsUsedInDocs[0];
   }
   // Avoid locking up tab.
   requestAnimationFrame(renderChangesToOccs);
@@ -201,7 +206,7 @@ function useOccs() {
     dayContainer.attr('height', dayTimelineHeight);
     renderDayTimeline(currentYear);
     renderMonthMap(currentYear);
-    renderYearMap(sortedOccs);
+    renderYearMap(yearsUsedInDocs);
   }
 }
 
@@ -210,7 +215,7 @@ function renderDayTimeline(year) {
 
   var ticks = dayTimeline
     .selectAll('.tick')
-    .data(Object.keys(dayGroupsByDateString), getIdForDate);
+    .data(Object.keys(dayGroupsByDateString).slice(0, 1000), getIdForDate);
 
   ticks.exit().remove();
 
@@ -225,9 +230,7 @@ function renderDayTimeline(year) {
     .attr('y2', 0);
   newTicks
     .append('text')
-    .text(
-      (dateString) => dayGroupsByDateString[dateString].occs[0].entity.title
-    )
+    .text((dateString) => getLabelForDayTick(dayGroupsByDateString, dateString))
     .attr('x', 54)
     .attr('y', '0.3em');
   newTicks
@@ -264,11 +267,11 @@ function renderDayTimeline(year) {
     .on('click', onDocItemClick);
 }
 
-function renderYearMap(sortedOccs) {
+function renderYearMap(years) {
   var yearContainer = d3.select('.year-map');
 
   yearContainer
-    .attr('height', sortedOccs.length * yearHeight)
+    .attr('height', years.length * yearHeight)
     .attr('width', maxBarLength);
 
   var bars = yearContainer
@@ -383,10 +386,17 @@ function getTransformForYear(year, i) {
   return `translate(0, ${y})`;
 }
 
+function getLabelForDayTick(dayGroupsByDateString, dateString) {
+  let occs = dayGroupsByDateString[dateString].occs;
+  const dateEntityName = occs[0].entity.title;
+  return `${dateEntityName} (${occs.length} documents)`;
+}
+
 function onDocItemClick(e, occ) {
   docFrameSel.attr(
     'src',
-    `https://embed.documentcloud.org/documents/${occ.document.id}/#document/p${occ.page + 1
+    `https://embed.documentcloud.org/documents/${occ.document.id}/#document/p${
+      occ.page + 1
     }`
   );
   docContainerSel.attr('title', occ.document.title);
@@ -452,7 +462,7 @@ function groupOccsByMonth(occs) {
       occsByMonth[month] = occsForMonth;
     }
     occsForMonth.push(occ);
-    occsForMonth.sort((a, b) => (a.entity.date < b.entity.date ? -1 : 1));
+    // occsForMonth.sort(compareOccDates);
   }
 }
 
@@ -460,9 +470,9 @@ function getIdForDate(dateString) {
   return 'docs-container-' + dateString.slice(0, 10);
 }
 
-function compareOccDates(a, b) {
-  return new Date(a.entity.date) < new Date(b.entity.date) ? -1 : 1;
-}
+//function compareOccDates(a, b) {
+//  return a.entity.date < b.entity.date ? -1 : 1;
+//}
 
 function distillResult(result) {
   const asset_url = result.asset_url;
