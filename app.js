@@ -1,9 +1,7 @@
-/* global findDates */
+/* global findDates, _, d3 */
 
-const selfURL = 'https://api.www.documentcloud.org/api/users/me/';
-const searchURL =
-  'https://api.www.documentcloud.org/api/documents/search?q=*:*&order_by=created_at';
-const defaultProjectId = '210820';
+//const searchURL =
+//'https://api.www.documentcloud.org/api/documents/search?q=*:*&order_by=created_at';
 var defaultFetchOpts = { credentials: 'include', mode: 'cors' };
 var entityCount = 0;
 
@@ -180,7 +178,7 @@ docCloseSel.on('click', onDocCloseClick);
     } while (nextDocsURL);
 
     if (errorHappenedWhileFetching) {
-      throw new Error(`Error while fetching: ${error.message} `);
+      throw new Error('Error while fetching.');
     }
   } catch (error) {
     handleError(error);
@@ -486,8 +484,25 @@ async function collectOccFromDocResult({
   pageTextURL,
 }) {
   try {
-    // let res = await fetch(pageTextURL, { ...defaultFetchOpts, redirect: 'manual' });
-    let res = await fetch(pageTextURL, defaultFetchOpts);
+    // The asset URL will redirect to an S3 bucket. The backend at the asset URL
+    // will require credentials, but the S3 bucket will reject requests with
+    // credentials. So, we need to make separate requests, but fetch cannot get
+    // the redirect URL, even if redirect is set to 'manual'.
+    /*
+    var preRedirectXHR = new XMLHttpRequest();
+    preRedirectXHR.open('GET', pageTextURL);
+    preRedirectXHR.setRequestHeader("content-type", 'application/json');
+    preRedirectXHR.withCredentials = true;
+    preRedirectXHR.onreadystatechange = onStateChange;
+;
+*/
+    var fetchOpts = { ...defaultFetchOpts, redirect: 'manual' };
+    if (pageTextURL.startsWith('https://s3.documentcloud.org')) {
+      // No credentials here; the request will get rejected if we include them.
+      fetchOpts = { mode: 'cors' };
+    }
+    let res = await fetch(pageTextURL, fetchOpts);
+    // let res = await fetch(pageTextURL, defaultFetchOpts);
     if (!res.ok) {
       console.error('Error from', pageTextURL, 'Status code:', res.status);
       return;
