@@ -3,7 +3,7 @@
 const selfURL = 'https://api.www.documentcloud.org/api/users/me/';
 const searchURL =
   'https://api.www.documentcloud.org/api/documents/search?q=*:*&order_by=created_at';
-
+const defaultProjectId = '210820';
 var defaultFetchOpts = { credentials: 'include', mode: 'cors' };
 var entityCount = 0;
 
@@ -135,17 +135,24 @@ docCloseSel.on('click', onDocCloseClick);
     let errorHappenedWhileFetching = true;
 
     let hashParts = window.location.hash.split('=');
-    const projectId = hashParts.length > 1 ? hashParts[1] : undefined;
+    let projectId = hashParts.length > 1 ? hashParts[1] : undefined;
     console.log(projectId);
 
     var nextDocsURL;
 
-    if (projectId) {
-      // const projDocsURL = `https://api.www.documentcloud.org/api/projects/${projectId}/documents/`;
-      nextDocsURL = `https://api.www.documentcloud.org/api/documents/search/?q=+project:${projectId}&version=2.0`;
-    } else {
-      nextDocsURL = searchURL;
+    if (!projectId) {
+      projectId = defaultProjectId;
+      const updatedURL = `${window.location.protocol}//${window.location.host}${window.location.pathname}#project=${projectId}`;
+      // Sync URL without triggering onhashchange.
+      window.history.pushState(null, null, updatedURL);
     }
+
+    // if (projectId) {
+    // const projDocsURL = `https://api.www.documentcloud.org/api/projects/${projectId}/documents/`;
+    nextDocsURL = `https://api.www.documentcloud.org/api/documents/search/?q=+project:${projectId}&version=2.0`;
+    // } else {
+    //   nextDocsURL = searchURL;
+    // }
 
     do {
       res = await fetch(nextDocsURL, defaultFetchOpts);
@@ -460,7 +467,8 @@ function compareOccDates(a, b) {
 }
 
 function distillResult(result) {
-  const asset_url = result.asset_url; //'https://s3.documentcloud.org/';
+  const asset_url = result.asset_url;
+  // const asset_url = 'https://s3.documentcloud.org/';
   return {
     id: result.id,
     canonical_url: result.canonical_url,
@@ -478,8 +486,17 @@ async function collectOccFromDocResult({
   pageTextURL,
 }) {
   try {
-    let res = await fetch(pageTextURL, { mode: 'cors' });
+    // let res = await fetch(pageTextURL, { ...defaultFetchOpts, redirect: 'manual' });
+    let res = await fetch(pageTextURL, defaultFetchOpts);
+    if (!res.ok) {
+      console.error('Error from', pageTextURL, 'Status code:', res.status);
+      return;
+    }
     let pageInfo = await res.json();
+    if (!pageInfo || !pageInfo.pages) {
+      console.error('No pages in response from', pageTextURL);
+      return;
+    }
     pageInfo.pages
       .map(getOccurrencesForPage)
       .flat()
