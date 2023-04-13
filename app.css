@@ -145,6 +145,11 @@ line {
   border-radius: 4px;
 }
 
+.date-docs-container div {
+  height: 50vh;
+  overflow-y: scroll;
+}
+
 .date-docs-container ul {
   background-color: white;
   border: var(--border-style);
