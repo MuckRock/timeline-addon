@@ -3,7 +3,6 @@
 //const searchURL =
 //'https://api.www.documentcloud.org/api/documents/search?q=*:*&order_by=created_at';
 var defaultFetchOpts = { credentials: 'include', mode: 'cors' };
-var entityCount = 0;
 
 // Constants
 // TODO: Custom scrollbar?
@@ -43,8 +42,12 @@ var dayGroupsByDateStringByYear = {};
 var mostOccsInAYear = 0;
 var currentYear;
 var yearsUsedInDocs = [];
+var entityCount = 0;
+var docsWithoutDatesCount = 0;
+var docsWithDatesCount = 0;
 
 var throttledUseOccs = _.throttle(useOccs, 1000 / maxRenderFPS);
+var throttledRenderDocCounts = _.throttle(renderDocCounts, 1000 / 10);
 
 function updateStateWithOcc(occ) {
   if (!occ) {
@@ -125,6 +128,8 @@ var monthContainer = d3.select('.month-map');
 var dayContainer = d3.select('.day-map');
 var dayTimeline = dayContainer.select('.timeline-layer');
 var statusMessageSel = d3.select('#status-message');
+var dateDocCountSel = d3.select('#date-doc-count');
+var noDateDocCountSel = d3.select('#no-date-doc-count');
 
 // Handlers
 yearMapToggleSel.on('click', onYearMapToggleClick);
@@ -163,9 +168,9 @@ docCloseSel.on('click', onDocCloseClick);
           let results = searchData.results.map(distillResult);
           // TODO: Queue to limit concurrent requests. For now, just do them in serial and use some self-rate-limiting.
           for (let i = 0; i < results.length; ++i) {
-            await new Promise((resolve) =>
-              setTimeout(resolve, pauseBetweenResultPageGetsMS)
-            );
+            // await new Promise((resolve) =>
+            //   setTimeout(resolve, pauseBetweenResultPageGetsMS)
+            // );
             await collectOccFromDocResult(results[i]);
           }
         }
@@ -368,6 +373,11 @@ function renderMonthMap(year) {
   }
 }
 
+function renderDocCounts() {
+  dateDocCountSel.text(docsWithDatesCount);
+  noDateDocCountSel.text(docsWithoutDatesCount);
+}
+
 function getTransformForTick(dateString) {
   return `translate(0, ${getYWithinYearForDate(dateString)})`;
 }
@@ -395,8 +405,7 @@ function getLabelForDayTick(dayGroupsByDateString, dateString) {
 function onDocItemClick(e, occ) {
   docFrameSel.attr(
     'src',
-    `https://embed.documentcloud.org/documents/${occ.document.id}/#document/p${
-      occ.page + 1
+    `https://embed.documentcloud.org/documents/${occ.document.id}/#document/p${occ.page + 1
     }`
   );
   docContainerSel.attr('title', occ.document.title);
@@ -522,10 +531,17 @@ async function collectOccFromDocResult({
       console.error('No pages in response from', pageTextURL);
       return;
     }
-    pageInfo.pages
+    let occs = pageInfo.pages
       .map(getOccurrencesForPage)
-      .flat()
+      .flat();
+    if (occs.length > 0) {
+      docsWithDatesCount += 1;
+    } else {
+      docsWithoutDatesCount += 1;
+    }
+    occs
       .forEach(updateStateWithOcc);
+    requestAnimationFrame(throttledRenderDocCounts);
   } catch (error) {
     console.error(
       `Error while getting pages for ${slug} at ${pageTextURL}`,
