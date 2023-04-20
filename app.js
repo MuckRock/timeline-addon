@@ -503,30 +503,28 @@ async function collectOccFromDocResult({
   pageTextURL,
 }) {
   try {
-    // The asset URL will redirect to an S3 bucket. The backend at the asset URL
+    // The asset URL may redirect to an S3 bucket. The backend at the asset URL
     // will require credentials, but the S3 bucket will reject requests with
-    // credentials. So, we need to make separate requests, but fetch cannot get
-    // the redirect URL, even if redirect is set to 'manual'.
-    /*
-    var preRedirectXHR = new XMLHttpRequest();
-    preRedirectXHR.open('GET', pageTextURL);
-    preRedirectXHR.setRequestHeader("content-type", 'application/json');
-    preRedirectXHR.withCredentials = true;
-    preRedirectXHR.onreadystatechange = onStateChange;
-;
-*/
-    var fetchOpts = { ...defaultFetchOpts, redirect: 'manual' };
+    // credentials.
+    // However, if we make a request the API with 'accept: application/json'
+    // the API will give us a JSON response containing the redirect location
+    // instead of redirecting us. We can use that to make separate requests with
+    // and without credentials to get the page text we need.
+    var directPageTextURL;
+
     if (pageTextURL.startsWith('https://s3.documentcloud.org')) {
-      // No credentials here; the request will get rejected if we include them.
-      fetchOpts = { mode: 'cors' };
+      directPageTextURL = pageTextURL;
+    } else {
+      let res = await fetchWithOpts({ pageTextURL, opts: { ...defaultFetchOpts, headers: { accept: 'application/json' } } });
+      let redirectInfo = await res.json();
+      directPageTextURL = redirectInfo.location;
     }
-    let res = await fetch(pageTextURL, fetchOpts);
-    // let res = await fetch(pageTextURL, defaultFetchOpts);
-    if (!res.ok) {
-      console.error('Error from', pageTextURL, 'Status code:', res.status);
+    // No credentials here; the request will get rejected if we include them.
+    var res = await fetchWithOpts({ pageTextURL: directPageTextURL, opts: { mode: 'cors' } });
+    if (!res) {
       return;
     }
-    let pageInfo = await res.json();
+    var pageInfo = await res.json();
     if (!pageInfo || !pageInfo.pages) {
       console.error('No pages in response from', pageTextURL);
       return;
@@ -583,4 +581,14 @@ async function collectOccFromDocResult({
       }
     }
   }
+}
+
+// Returns the response if it was good, undefined otherwise.
+async function fetchWithOpts({ pageTextURL, opts }) {
+  let res = await fetch(pageTextURL, opts);
+  if (!res.ok) {
+    console.error('Error from', pageTextURL, 'Status code:', res.status);
+    return;
+  }
+  return res;
 }
