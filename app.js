@@ -232,11 +232,6 @@ function renderDayTimeline(year) {
     .text((dateString) => getLabelForDayTick(monthDict, dateString))
     .attr('x', 54)
     .attr('y', '0.3em');
-  newTicks
-    .append('use')
-    .attr('href', '#doc-icon-def')
-    .attr('x', 320 - 24 - 10)
-    .attr('y', -32 / 2);
 
   newTicks.on('click', onTickClick);
 
