@@ -184,6 +184,7 @@ function updateStateWithOcc(occ) {
     const occsInYear = counts.byYear[year];
     if (occsInYear > mostOccsInAYear) {
       mostOccsInAYear = occsInYear;
+      yearWidthScale.domain([0, mostOccsInAYear]);
     }
   }
 }
@@ -647,7 +648,7 @@ function getMostOccsInAMonth(occsByMonth) {
 
 function countOccsInDateStringDict(occsByDateString) {
   var occArrays = Object.values(occsByDateString);
-  return occArrays.reduce((sum, occs) => sum + occs.length);
+  return occArrays.reduce((sum, occs) => sum + occs.length, 0);
 }
 
 function getFirstOccInDateStringDict(dateStringDict) {
