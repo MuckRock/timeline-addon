@@ -19,7 +19,7 @@ const dayTimelineHeight = 365 * dayHeight;
 const minReasonableDate = new Date(1000, 0, 0);
 const maxRenderFPS = 2;
 //const pauseBetweenResultPageGetsMS = 1000;
-const defaultProjectId = '210820';
+const defaultProjectId = '211714'; // This one is really huge (20K+ docs): '210820';
 
 var englishMonthNames = [
   'January',
