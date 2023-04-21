@@ -3,6 +3,8 @@
   --border-style: 2px solid var(--darkened);
   --border-rad: 2px;
   --control-margin: 8px;
+  --light-fill: hsl(210, 70%, 80%);
+  --lighter-fill: hsl(210, 70%, 90%);
 }
 
 body {
@@ -95,7 +97,7 @@ line {
 
 .bar {
   stroke: var(--darkened);
-  fill: hsl(210, 70%, 80%);
+  fill: var(--light-fill);
 }
 
 .high-level-map>text {
@@ -145,17 +147,28 @@ line {
   border-radius: 4px;
 }
 
+.date-docs-container {
+  font-size: smaller;
+  border-radius: calc(2 * var(--border-rad));
+}
+
 .date-docs-container div {
   height: 50vh;
   overflow-y: scroll;
+  padding: 1em;
+  background-color: var(--lighter-fill);
 }
 
 .date-docs-container ul {
-  background-color: white;
-  border: var(--border-style);
-  border-radius: var(--border-rad);
+  list-style-type: none;
+  padding: 0;
 }
 
 .date-docs-container ul li {
   cursor: pointer;
+  margin-bottom: 0.5em;
+  margin-top: 0;
+  padding: 0;
+  text-decoration: underline;
+  font-weight: bold;
 }
