@@ -84,6 +84,15 @@ line {
   overflow-y: scroll;
 }
 
+.month-map-container {
+  position: sticky;
+  top: 0;
+  width: 100%;
+  height: 64px;
+  overflow-x: scroll;
+  flex-grow: 1;
+}
+
 .high-level-map {
   border: var(--border-style);
   border-radius: var(--border-rad);
@@ -112,6 +121,7 @@ line {
   display: flex;
   flex-direction: row;
   align-items: start;
+  width: 100%;
 }
 
 .control-pane {

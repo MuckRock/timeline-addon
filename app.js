@@ -5,7 +5,6 @@
 var defaultFetchOpts = { credentials: 'include', mode: 'cors' };
 
 // Constants
-// TODO: Custom scrollbar?
 const yearHeight = 64;
 const monthHeight =
   (window.innerHeight -
@@ -13,6 +12,7 @@ const monthHeight =
       .querySelector('.month-map-container .title')
       .getBoundingClientRect().height) /
   12;
+const monthWidth = 200;
 const dayHeight = 64;
 const maxBarLength = 200;
 const dayTimelineHeight = 365 * dayHeight;
@@ -309,52 +309,48 @@ function renderMonthMap(year) {
     .domain([0, getMostOccsInAMonth(occsByMonth)])
     .range([0, maxBarLength]);
 
-  monthContainer.attr('height', 12 * monthHeight).attr('width', maxBarLength);
-
-  var months = monthContainer
+  var monthsSel = monthContainer
     .select('.timeline-layer')
-    .selectAll('.month')
-    .data(Object.keys(occsByMonth), (x) => x);
+    .selectAll('.month');
 
-  months.exit().remove();
+  // currentMonths.exit().remove();
 
-  var newMonths = months.enter().append('g').classed('month', true);
+  // var newMonths = months.enter().append('g').classed('month', true);
 
-  newMonths.append('rect').classed('bar', true).attr('height', monthHeight);
-  newMonths
-    .append('text')
-    .text((month) => englishMonthNames[month])
-    .attr('x', 5)
-    .attr('y', '1em');
-  newMonths
-    .append('text')
-    .attr('x', 5)
-    .attr('y', '2em')
-    .classed('doc-count', true);
-  newMonths.attr(
-    'transform',
-    (month) => `translate(0, ${monthHeight * month})`
-  );
+  // newMonths.append('rect').classed('bar', true).attr('height', monthHeight);
+  // newMonths
+  //   .append('text')
+  //   .text((month) => englishMonthNames[month])
+  //   .attr('x', 5)
+  //   .attr('y', '1em');
+  // newMonths
+  //   .append('text')
+  //   .attr('x', 5)
+  //   .attr('y', '2em')
+  //   .classed('doc-count', true);
+  // newMonths.attr(
+  //   'transform',
+  //   (month) => `translate(${month * monthWidth}, 0)`
+  // );
 
-  var currentMonths = months.merge(newMonths);
-  currentMonths
+  monthsSel
     .select('.bar')
-    .attr('width', (month) => monthWidthScale(counts.byMonthByYear[year][month]));
-  currentMonths
+    .attr('width', (ignored, month) => monthWidthScale(counts.byMonthByYear[year][month]));
+  monthsSel
     .select('.doc-count')
-    .text((month) => `${counts.byMonthByYear[year][month]} dates in documents`);
+    .text((ignored, monthIndex) => getDocCountText(year, monthIndex));
   // onMonthClick needs to be rebound on every render so that
   // occsByMonth is correct when the click happens.
-  currentMonths.on('click', onMonthClick);
+  // currentMonths.on('click', onMonthClick);
 
-  function onMonthClick(e, month) {
-    var occsByDateString = occsByMonth[month];
-    if (!occsByDateString || occsByDateString.length < 1) {
-      return;
-    }
+  // function onMonthClick(e, month) {
+  //   var occsByDateString = occsByMonth[month];
+  //   if (!occsByDateString || occsByDateString.length < 1) {
+  //     return;
+  //   }
 
-    scrollOccurrenceIntoView(getFirstOccInDateStringDict(occsByDateString));
-  }
+  //   scrollOccurrenceIntoView(getFirstOccInDateStringDict(occsByDateString));
+  // }
 }
 
 function renderDocCounts() {
@@ -426,7 +422,7 @@ function onYearClick(e, year) {
   if (!occsByMonth || occsByMonth.length < 1) {
     return;
   }
-  scrollOccurrenceIntoView(getFirstOccInDateStringDict(occsByMonth[0]));
+  // scrollOccurrenceIntoView(getFirstOccInDateStringDict(occsByMonth[0]));
 }
 
 function onYearMapToggleClick() {
@@ -660,4 +656,16 @@ function getFirstOccInDateStringDict(dateStringDict) {
     return;
   }
   return occList[0];
+}
+
+function getDocCountText(year, month) {
+  var count;
+  var countsForYear = counts.byMonthByYear[year];
+  if (countsForYear) {
+    count = countsForYear[month];
+  }
+  if (count) {
+    return `${count} dates in documents`;
+  }
+  return '';
 }
