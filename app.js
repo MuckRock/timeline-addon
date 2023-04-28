@@ -8,7 +8,7 @@ var defaultFetchOpts = { credentials: 'include', mode: 'cors' };
 const yearHeight = 64;
 const dayHeight = 64;
 const maxBarLength = 200;
-const monthTimelineHeight = 365 * dayHeight;
+const monthTimelineHeight = 31 * dayHeight;
 const minReasonableDate = new Date(1000, 0, 0);
 const maxRenderFPS = 2;
 //const pauseBetweenResultPageGetsMS = 1000;
@@ -222,7 +222,7 @@ function renderDayTimeline({ year, monthIndex, root }) {
     .classed('date-docs-container', true)
     .classed('hidden', true)
     .attr('id', (date) => 'doc-list-' + getIdForDate(date))
-    .attr('y', (date) => getYWithinYearForDate(date) + 8)
+    .attr('y', (date) => getYWithinMonthForDate(date) + 8)
     .attr('x', 8)
     .attr('width', 300)
     .attr('height', 320)
@@ -271,7 +271,7 @@ function renderYearMap(years) {
   existingBars.select('.year-label').text((year) => year);
   existingBars
     .select('.doc-count')
-    .text((year) => `${counts.byYear[year]} dates in documents`);
+    .text((year) => `${counts.byYear[year]} dates in docs`);
   existingBars.attr('transform', getTransformForYear);
   existingBars.on('click', onYearClick);
 }
@@ -340,16 +340,16 @@ function renderDocCounts() {
 }
 
 function getTransformForTick(dateString) {
-  return `translate(0, ${getYWithinYearForDate(dateString)})`;
+  return `translate(0, ${getYWithinMonthForDate(dateString)})`;
 }
 
-function getYWithinYearForDate(dateString) {
+function getYWithinMonthForDate(dateString) {
   const date = new Date(dateString);
-  const startOfYear = new Date(date.getFullYear(), 0, 1);
-  const daysFromStartOfYear =
-    (date.getTime() - startOfYear.getTime()) / (1000 * 60 * 60 * 24);
+  const startOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+  const daysFromStartOfMonth =
+    (date.getTime() - startOfMonth.getTime()) / (1000 * 60 * 60 * 24);
   // The added 0.5 is to keep the first tick from being halfway cut off.
-  return (daysFromStartOfYear + 0.5) * dayHeight;
+  return (daysFromStartOfMonth + 0.5) * dayHeight;
 }
 
 function getTransformForYear(year, i) {
@@ -361,7 +361,7 @@ function getLabelForDayTick(monthDict, dateString) {
   var occsByDateString = getDateStringDictForDateString(monthDict, dateString);
   let occs = occsByDateString[dateString];
   const dateEntityName = occs[0].entity.title;
-  return `${dateEntityName} (${occs.length} documents)`;
+  return `${dateEntityName} (${occs.length})`;
 }
 
 function getOccsFromMonthDict(monthDict, dateString) {
@@ -379,8 +379,7 @@ function getDateStringDictForDateString(monthDict, dateString) {
 function onDocItemClick(e, occ) {
   docFrameSel.attr(
     'src',
-    `https://embed.documentcloud.org/documents/${occ.document.id}/#document/p${
-      occ.page + 1
+    `https://embed.documentcloud.org/documents/${occ.document.id}/#document/p${occ.page + 1
     }`
   );
   docContainerSel.attr('title', occ.document.title);
