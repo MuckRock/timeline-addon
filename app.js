@@ -9,6 +9,7 @@ const yearHeight = 64;
 const dayHeight = 64;
 const maxBarLength = 200;
 const monthTimelineHeight = 31 * dayHeight;
+const monthHeaderHeight = 80;
 const minReasonableDate = new Date(1000, 0, 0);
 const maxRenderFPS = 2;
 //const pauseBetweenResultPageGetsMS = 1000;
@@ -348,8 +349,7 @@ function getYWithinMonthForDate(dateString) {
   const startOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
   const daysFromStartOfMonth =
     (date.getTime() - startOfMonth.getTime()) / (1000 * 60 * 60 * 24);
-  // The added 0.5 is to keep the first tick from being halfway cut off.
-  return (daysFromStartOfMonth + 0.5) * dayHeight;
+  return daysFromStartOfMonth * dayHeight + monthHeaderHeight;
 }
 
 function getTransformForYear(year, i) {
