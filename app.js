@@ -12,7 +12,6 @@ const monthTimelineHeight = 31 * dayHeight;
 const monthHeaderHeight = 80;
 const minReasonableDate = new Date(1000, 0, 0);
 const maxRenderFPS = 2;
-//const pauseBetweenResultPageGetsMS = 1000;
 const defaultProjectId = '211714'; // This one is really huge (20K+ docs): '210820';
 
 // State
@@ -94,9 +93,6 @@ docCloseSel.on('click', onDocCloseClick);
           let results = searchData.results.map(distillResult);
           // TODO: Queue to limit concurrent requests. For now, just do them in serial and use some self-rate-limiting.
           for (let i = 0; i < results.length; ++i) {
-            // await new Promise((resolve) =>
-            //   setTimeout(resolve, pauseBetweenResultPageGetsMS)
-            // );
             await collectOccFromDocResult(results[i]);
           }
         }
@@ -131,7 +127,7 @@ function updateStateWithOcc(occ) {
     return;
   }
   storeOccurrence(occ);
-  yearsUsedInDocs = Object.keys(occsByDateStringByMonthByYear); //.sort();
+  yearsUsedInDocs = Object.keys(occsByDateStringByMonthByYear);
   if (yearsUsedInDocs.length < 1) {
     throw new Error('No years found in data.');
   }
@@ -189,7 +185,6 @@ function renderDayTimeline({ year, monthIndex, root }) {
     .select('.timeline-layer')
     .selectAll('.tick')
     .data(dateStrings, getIdForDate);
-  // .data(dateStrings.slice(0, 1000), getIdForDate);
 
   ticks.exit().remove();
 
@@ -287,26 +282,6 @@ function renderMonthMap(year) {
 
   var monthsSel = monthContainer.select('.timeline-layer').selectAll('.month');
 
-  // currentMonths.exit().remove();
-
-  // var newMonths = months.enter().append('g').classed('month', true);
-
-  // newMonths.append('rect').classed('bar', true).attr('height', monthHeight);
-  // newMonths
-  //   .append('text')
-  //   .text((month) => englishMonthNames[month])
-  //   .attr('x', 5)
-  //   .attr('y', '1em');
-  // newMonths
-  //   .append('text')
-  //   .attr('x', 5)
-  //   .attr('y', '2em')
-  //   .classed('doc-count', true);
-  // newMonths.attr(
-  //   'transform',
-  //   (month) => `translate(${month * monthWidth}, 0)`
-  // );
-
   monthsSel
     .select('.bar')
     .attr('width', (ignored, month) =>
@@ -321,19 +296,6 @@ function renderMonthMap(year) {
   function passToRenderDay(ignored, monthIndex) {
     renderDayTimeline({ year, monthIndex, root: d3.select(this) });
   }
-
-  // onMonthClick needs to be rebound on every render so that
-  // occsByMonth is correct when the click happens.
-  // currentMonths.on('click', onMonthClick);
-
-  // function onMonthClick(e, month) {
-  //   var occsByDateString = occsByMonth[month];
-  //   if (!occsByDateString || occsByDateString.length < 1) {
-  //     return;
-  //   }
-
-  //   scrollOccurrenceIntoView(getFirstOccInDateStringDict(occsByDateString));
-  // }
 }
 
 function renderDocCounts() {
@@ -403,7 +365,6 @@ function onYearClick(e, year) {
   if (!occsByMonth || occsByMonth.length < 1) {
     return;
   }
-  // scrollOccurrenceIntoView(getFirstOccInDateStringDict(occsByMonth[0]));
 }
 
 function onYearMapToggleClick() {
@@ -431,10 +392,6 @@ function onDocCloseClick() {
 function getIdForDate(dateString) {
   return 'docs-container-' + dateString.slice(0, 10);
 }
-
-//function compareOccDates(a, b) {
-//  return a.entity.date < b.entity.date ? -1 : 1;
-//}
 
 function distillResult(result) {
   const asset_url = result.asset_url;
@@ -588,19 +545,6 @@ function putInDateStringDict(dateStringDict, dateObj, occ) {
   }
   occsList.push(occ);
 }
-
-/*
-// A monthDict has keys corresponding to months.
-function countOccs(monthDict) {
-  var dateStringDicts = Object.values(monthDict);
-  return Object.values(dateStringDicts).reduce(addOccsInDateStringDict, 0);
-}
- 
-// A dateStringDict has keys corresponding to dates. It covers up to a month of dates.
-function addOccsInDateStringDict(sum, dateStringDict) {
-  return sum + countOccsInDateStringDict(dateStringDict);
-}
-*/
 
 function getMostOccsInAMonth(occsByMonth) {
   return Object.values(occsByMonth).reduce(compareOccsInMonthToMax, 0);
