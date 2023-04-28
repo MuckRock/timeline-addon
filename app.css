@@ -60,7 +60,7 @@ a:visited {
 .hidden {
   opacity: 0;
   transition: opacity 1s;
-  display: none;
+  display: none !important;
 }
 
 line {
@@ -84,15 +84,26 @@ line {
   overflow-y: scroll;
 }
 
+.month-map-container {
+  position: sticky;
+  top: 0;
+  width: 100%;
+  overflow-x: scroll;
+  flex-grow: 1;
+}
+
 .high-level-map {
   border: var(--border-style);
   border-radius: var(--border-rad);
   background-color: white;
 }
 
-.year,
-.month {
+.year {
   cursor: pointer;
+}
+
+.month>text {
+  font-weight: bold;
 }
 
 .bar {
@@ -112,6 +123,7 @@ line {
   display: flex;
   flex-direction: row;
   align-items: start;
+  width: 100%;
 }
 
 .control-pane {
@@ -126,25 +138,38 @@ line {
 }
 
 .doc-container {
+  width: 100%;
   height: 100vh;
+  display: flex;
+  justify-content: center;
+  position: fixed;
+  pointer-events: none;
+}
+
+.doc-container-centerer {
+  width: 40em;
+  max-width: 70%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  border: var(--border-style);
+  border-radius: var(--border-rad);
+}
+
+.doc-container-centerer>* {
+  pointer-events: auto;
+  box-sizing: border-box;
 }
 
 #doc-frame {
-  position: fixed;
-  right: 0;
-  bottom: 0;
-  border: var(--border-style);
-  border-radius: var(--border-rad);
-  height: calc(100vh - 100px);
+  width: 100%;
+  height: 100%;
 }
 
 .citation {
-  position: fixed;
-  top: 0;
+  width: 100%;
   padding: 0.5em;
   background: hsl(0, 0%, 90%);
-  border: 1px black solid;
-  border-radius: 4px;
 }
 
 .date-docs-container {

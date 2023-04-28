@@ -5,36 +5,14 @@
 var defaultFetchOpts = { credentials: 'include', mode: 'cors' };
 
 // Constants
-// TODO: Custom scrollbar?
 const yearHeight = 64;
-const monthHeight =
-  (window.innerHeight -
-    document
-      .querySelector('.month-map-container .title')
-      .getBoundingClientRect().height) /
-  12;
 const dayHeight = 64;
 const maxBarLength = 200;
-const dayTimelineHeight = 365 * dayHeight;
+const monthTimelineHeight = 31 * dayHeight;
+const monthHeaderHeight = 80;
 const minReasonableDate = new Date(1000, 0, 0);
 const maxRenderFPS = 2;
-//const pauseBetweenResultPageGetsMS = 1000;
 const defaultProjectId = '211714'; // This one is really huge (20K+ docs): '210820';
-
-var englishMonthNames = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
-];
 
 // State
 var occsByDateStringByMonthByYear = {};
@@ -72,11 +50,10 @@ var yearMapToggleSel = d3.select('#year-map-toggle-button');
 var monthMapToggleSel = d3.select('#month-map-toggle-button');
 var docCloseSel = d3.select('#doc-close-button');
 var monthContainer = d3.select('.month-map');
-var dayContainer = d3.select('.day-map');
-var dayTimeline = dayContainer.select('.timeline-layer');
 var statusMessageSel = d3.select('#status-message');
 var dateDocCountSel = d3.select('#date-doc-count');
 var noDateDocCountSel = d3.select('#no-date-doc-count');
+var yearLabelSel = d3.select('#current-year-label');
 
 // Handlers
 yearMapToggleSel.on('click', onYearMapToggleClick);
@@ -106,6 +83,7 @@ docCloseSel.on('click', onDocCloseClick);
     // } else {
     //   nextDocsURL = searchURL;
     // }
+    d3.select('.month-map').attr('height', monthTimelineHeight);
 
     do {
       let res = await fetch(nextDocsURL, defaultFetchOpts);
@@ -115,9 +93,6 @@ docCloseSel.on('click', onDocCloseClick);
           let results = searchData.results.map(distillResult);
           // TODO: Queue to limit concurrent requests. For now, just do them in serial and use some self-rate-limiting.
           for (let i = 0; i < results.length; ++i) {
-            // await new Promise((resolve) =>
-            //   setTimeout(resolve, pauseBetweenResultPageGetsMS)
-            // );
             await collectOccFromDocResult(results[i]);
           }
         }
@@ -152,7 +127,7 @@ function updateStateWithOcc(occ) {
     return;
   }
   storeOccurrence(occ);
-  yearsUsedInDocs = Object.keys(occsByDateStringByMonthByYear); //.sort();
+  yearsUsedInDocs = Object.keys(occsByDateStringByMonthByYear);
   if (yearsUsedInDocs.length < 1) {
     throw new Error('No years found in data.');
   }
@@ -197,24 +172,19 @@ function useOccs() {
   requestAnimationFrame(renderChangesToOccs);
 
   function renderChangesToOccs() {
-    dayContainer.attr('height', dayTimelineHeight);
-    renderDayTimeline(currentYear);
-    renderMonthMap(currentYear);
     renderYearMap(yearsUsedInDocs);
   }
 }
 
-function renderDayTimeline(year) {
+function renderDayTimeline({ year, monthIndex, root }) {
   var monthDict = occsByDateStringByMonthByYear[year];
-  var arrayOfDictsByDateString = Object.values(monthDict).flat();
-  var dateStrings = arrayOfDictsByDateString
-    .map(Object.keys)
-    .flat()
-    // Watch out for this if perf issues come up:
-    .sort();
+  var dayDict = monthDict ? monthDict[monthIndex] : {};
+  var dateStrings = (dayDict ? Object.keys(dayDict) : []).flat().sort();
 
-  var ticks = dayTimeline.selectAll('.tick').data(dateStrings, getIdForDate);
-  // .data(dateStrings.slice(0, 1000), getIdForDate);
+  var ticks = root
+    .select('.timeline-layer')
+    .selectAll('.tick')
+    .data(dateStrings, getIdForDate);
 
   ticks.exit().remove();
 
@@ -240,7 +210,8 @@ function renderDayTimeline(year) {
     .attr('id', getIdForDate)
     .attr('transform', getTransformForTick);
 
-  d3.select('.doc-lists-layer')
+  root
+    .select('.doc-lists-layer')
     .selectAll('.date-docs-container')
     .data(dateStrings, (day) => day)
     .enter()
@@ -248,7 +219,7 @@ function renderDayTimeline(year) {
     .classed('date-docs-container', true)
     .classed('hidden', true)
     .attr('id', (date) => 'doc-list-' + getIdForDate(date))
-    .attr('y', date => getYWithinYearForDate(date) + 8)
+    .attr('y', (date) => getYWithinMonthForDate(date) + 8)
     .attr('x', 8)
     .attr('width', 300)
     .attr('height', 320)
@@ -297,7 +268,7 @@ function renderYearMap(years) {
   existingBars.select('.year-label').text((year) => year);
   existingBars
     .select('.doc-count')
-    .text((year) => `${counts.byYear[year]} dates in documents`);
+    .text((year) => `${counts.byYear[year]} dates in docs`);
   existingBars.attr('transform', getTransformForYear);
   existingBars.on('click', onYearClick);
 }
@@ -309,51 +280,21 @@ function renderMonthMap(year) {
     .domain([0, getMostOccsInAMonth(occsByMonth)])
     .range([0, maxBarLength]);
 
-  monthContainer.attr('height', 12 * monthHeight).attr('width', maxBarLength);
+  var monthsSel = monthContainer.select('.timeline-layer').selectAll('.month');
 
-  var months = monthContainer
-    .select('.timeline-layer')
-    .selectAll('.month')
-    .data(Object.keys(occsByMonth), (x) => x);
-
-  months.exit().remove();
-
-  var newMonths = months.enter().append('g').classed('month', true);
-
-  newMonths.append('rect').classed('bar', true).attr('height', monthHeight);
-  newMonths
-    .append('text')
-    .text((month) => englishMonthNames[month])
-    .attr('x', 5)
-    .attr('y', '1em');
-  newMonths
-    .append('text')
-    .attr('x', 5)
-    .attr('y', '2em')
-    .classed('doc-count', true);
-  newMonths.attr(
-    'transform',
-    (month) => `translate(0, ${monthHeight * month})`
-  );
-
-  var currentMonths = months.merge(newMonths);
-  currentMonths
+  monthsSel
     .select('.bar')
-    .attr('width', (month) => monthWidthScale(counts.byMonthByYear[year][month]));
-  currentMonths
+    .attr('width', (ignored, month) =>
+      monthWidthScale(counts.byMonthByYear[year][month])
+    );
+  monthsSel
     .select('.doc-count')
-    .text((month) => `${counts.byMonthByYear[year][month]} dates in documents`);
-  // onMonthClick needs to be rebound on every render so that
-  // occsByMonth is correct when the click happens.
-  currentMonths.on('click', onMonthClick);
+    .text((ignored, monthIndex) => getDocCountText(year, monthIndex));
 
-  function onMonthClick(e, month) {
-    var occsByDateString = occsByMonth[month];
-    if (!occsByDateString || occsByDateString.length < 1) {
-      return;
-    }
+  monthsSel.each(passToRenderDay);
 
-    scrollOccurrenceIntoView(getFirstOccInDateStringDict(occsByDateString));
+  function passToRenderDay(ignored, monthIndex) {
+    renderDayTimeline({ year, monthIndex, root: d3.select(this) });
   }
 }
 
@@ -363,16 +304,15 @@ function renderDocCounts() {
 }
 
 function getTransformForTick(dateString) {
-  return `translate(0, ${getYWithinYearForDate(dateString)})`;
+  return `translate(0, ${getYWithinMonthForDate(dateString)})`;
 }
 
-function getYWithinYearForDate(dateString) {
+function getYWithinMonthForDate(dateString) {
   const date = new Date(dateString);
-  const startOfYear = new Date(date.getFullYear(), 0, 1);
-  const daysFromStartOfYear =
-    (date.getTime() - startOfYear.getTime()) / (1000 * 60 * 60 * 24);
-  // The added 0.5 is to keep the first tick from being halfway cut off.
-  return (daysFromStartOfYear + 0.5) * dayHeight;
+  const startOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+  const daysFromStartOfMonth =
+    (date.getTime() - startOfMonth.getTime()) / (1000 * 60 * 60 * 24);
+  return daysFromStartOfMonth * dayHeight + monthHeaderHeight;
 }
 
 function getTransformForYear(year, i) {
@@ -384,7 +324,7 @@ function getLabelForDayTick(monthDict, dateString) {
   var occsByDateString = getDateStringDictForDateString(monthDict, dateString);
   let occs = occsByDateString[dateString];
   const dateEntityName = occs[0].entity.title;
-  return `${dateEntityName} (${occs.length} documents)`;
+  return `${dateEntityName} (${occs.length})`;
 }
 
 function getOccsFromMonthDict(monthDict, dateString) {
@@ -418,15 +358,13 @@ function onTickClick(e, day) {
 
 function onYearClick(e, year) {
   currentYear = year;
-
+  yearLabelSel.text(currentYear);
   renderMonthMap(year);
-  renderDayTimeline(year);
 
   var occsByMonth = Object.values(occsByDateStringByMonthByYear[year]);
   if (!occsByMonth || occsByMonth.length < 1) {
     return;
   }
-  scrollOccurrenceIntoView(getFirstOccInDateStringDict(occsByMonth[0]));
 }
 
 function onYearMapToggleClick() {
@@ -451,18 +389,9 @@ function onDocCloseClick() {
   docCloseSel.classed('hidden', true);
 }
 
-function scrollOccurrenceIntoView(occ) {
-  var textSel = d3.select(`#${getIdForDate(occ.entity.date)} text`);
-  textSel.node().scrollIntoView({ behavior: 'smooth' });
-}
-
 function getIdForDate(dateString) {
   return 'docs-container-' + dateString.slice(0, 10);
 }
-
-//function compareOccDates(a, b) {
-//  return a.entity.date < b.entity.date ? -1 : 1;
-//}
 
 function distillResult(result) {
   const asset_url = result.asset_url;
@@ -617,19 +546,6 @@ function putInDateStringDict(dateStringDict, dateObj, occ) {
   occsList.push(occ);
 }
 
-/*
-// A monthDict has keys corresponding to months.
-function countOccs(monthDict) {
-  var dateStringDicts = Object.values(monthDict);
-  return Object.values(dateStringDicts).reduce(addOccsInDateStringDict, 0);
-}
-
-// A dateStringDict has keys corresponding to dates. It covers up to a month of dates.
-function addOccsInDateStringDict(sum, dateStringDict) {
-  return sum + countOccsInDateStringDict(dateStringDict);
-}
-*/
-
 function getMostOccsInAMonth(occsByMonth) {
   return Object.values(occsByMonth).reduce(compareOccsInMonthToMax, 0);
 
@@ -647,17 +563,14 @@ function countOccsInDateStringDict(occsByDateString) {
   return occArrays.reduce((sum, occs) => sum + occs.length, 0);
 }
 
-function getFirstOccInDateStringDict(dateStringDict) {
-  var occLists = Object.values(dateStringDict);
-  if (occLists.length < 1) {
-    return;
+function getDocCountText(year, month) {
+  var count;
+  var countsForYear = counts.byMonthByYear[year];
+  if (countsForYear) {
+    count = countsForYear[month];
   }
-  if (!occLists || occLists.length < 1) {
-    return;
+  if (count) {
+    return `${count} dates in documents`;
   }
-  var occList = occLists[0];
-  if (!occList || occList.length < 1) {
-    return;
-  }
-  return occList[0];
+  return '';
 }
