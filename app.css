@@ -98,8 +98,7 @@ line {
   background-color: white;
 }
 
-.year,
-.month {
+.year {
   cursor: pointer;
 }
 
