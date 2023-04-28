@@ -84,6 +84,17 @@ line {
   overflow-y: scroll;
 }
 
+.month-headers {
+  display: flex;
+  position: fixed;
+}
+
+.month-header {
+  width: 200px;
+  height: 32px;
+  flex-shrink: 0;
+}
+
 .month-map-container {
   position: sticky;
   top: 0;
