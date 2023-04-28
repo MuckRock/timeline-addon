@@ -54,6 +54,7 @@ var monthContainer = d3.select('.month-map');
 var statusMessageSel = d3.select('#status-message');
 var dateDocCountSel = d3.select('#date-doc-count');
 var noDateDocCountSel = d3.select('#no-date-doc-count');
+var yearLabelSel = d3.select('#current-year-label');
 
 // Handlers
 yearMapToggleSel.on('click', onYearMapToggleClick);
@@ -395,6 +396,7 @@ function onTickClick(e, day) {
 
 function onYearClick(e, year) {
   currentYear = year;
+  yearLabelSel.text(currentYear);
   renderMonthMap(year);
 
   var occsByMonth = Object.values(occsByDateStringByMonthByYear[year]);

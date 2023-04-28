@@ -102,6 +102,10 @@ line {
   cursor: pointer;
 }
 
+.month>text {
+  font-weight: bold;
+}
+
 .bar {
   stroke: var(--darkened);
   fill: var(--light-fill);
