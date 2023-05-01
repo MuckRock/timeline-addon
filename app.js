@@ -13,6 +13,7 @@ const monthHeaderHeight = 80;
 const minReasonableDate = new Date(1000, 0, 0);
 const maxRenderFPS = 2;
 const defaultProjectId = '211714'; // This one is really huge (20K+ docs): '210820';
+const selfURL = 'https://api.www.documentcloud.org/api/users/me/';
 
 // State. TODO: Encapsulate.
 var occsByDateStringByMonthByYear;
@@ -44,7 +45,8 @@ var monthMapContainerSel = d3.select('.month-map-container');
 var yearMapToggleSel = d3.select('#year-map-toggle-button');
 var docCloseSel = d3.select('#doc-close-button');
 var projectUpdateButtonSel = d3.select('#change-project-button');
-var projectInput = d3.select('#project-input')
+var projectInput = d3.select('#project-input');
+var projectSelect = d3.select('#project-select');
 var monthContainer = d3.select('.month-map');
 var statusMessageSel = d3.select('#status-message');
 var dateDocCountSel = d3.select('#date-doc-count');
@@ -56,11 +58,12 @@ yearMapToggleSel.on('click', onYearMapToggleClick);
 docCloseSel.on('click', onDocCloseClick);
 projectUpdateButtonSel.on('click', onUpdateProjectClick);
 
-((function init() {
+(function init() {
   let hashParts = window.location.hash.split('=');
   let projectId = hashParts.length > 1 ? hashParts[1] : undefined;
   runWithProject(projectId);
-})());
+  setUpProjectSelect();
+})();
 
 function initState() {
   occsByDateStringByMonthByYear = {};
@@ -355,7 +358,8 @@ function getDateStringDictForDateString(monthDict, dateString) {
 function onDocItemClick(e, occ) {
   docFrameSel.attr(
     'src',
-    `https://embed.documentcloud.org/documents/${occ.document.id}/#document/p${occ.page + 1
+    `https://embed.documentcloud.org/documents/${occ.document.id}/#document/p${
+      occ.page + 1
     }`
   );
   docContainerSel.attr('title', occ.document.title);
@@ -585,4 +589,26 @@ function getDocCountText(year, month) {
     return `${count} dates in documents`;
   }
   return '';
+}
+
+async function setUpProjectSelect() {
+  try {
+    let res = await fetch(selfURL, defaultFetchOpts);
+    let userData = await res.json();
+    res = await fetch(
+      `https://api.www.documentcloud.org/api/projects/?user=${userData.id}&private=unknown&slug=&title=&document=`,
+      defaultFetchOpts
+    );
+    let projectData = await res.json();
+    options = projectSelect.selectAll('option').data(projectData.results);
+    options.exit().remove();
+    let newOptions = options.enter().append('option');
+    newOptions
+      .merge(options)
+      .attr('value', (project) => project.id)
+      .text((project) => project.title)
+      .on('click', (project) => runWithProject(project.id));
+  } catch (error) {
+    handleError(error);
+  }
 }
