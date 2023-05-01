@@ -13,24 +13,20 @@ const monthHeaderHeight = 80;
 const minReasonableDate = new Date(1000, 0, 0);
 const maxRenderFPS = 2;
 const defaultProjectId = '211714'; // This one is really huge (20K+ docs): '210820';
+const selfURL = 'https://api.www.documentcloud.org/api/users/me/';
 
-// State
-var occsByDateStringByMonthByYear = {};
+// State. TODO: Encapsulate.
+var occsByDateStringByMonthByYear;
 // Structure:
 // { year: { month: { dateString: [ occurrences ] }}}
 // TypeScript def would be: Record<string, Record<string, Record<string, Occurrence[]>>>
-var counts = {
-  byYear: {},
-  byMonthByYear: {},
-  byDateString: {},
-};
-
-var mostOccsInAYear = 0;
+var counts;
+var mostOccsInAYear;
 var currentYear;
-var yearsUsedInDocs = [];
-var entityCount = 0;
-var docsWithoutDatesCount = 0;
-var docsWithDatesCount = 0;
+var yearsUsedInDocs;
+var entityCount;
+var docsWithoutDatesCount;
+var docsWithDatesCount;
 
 var throttledUseOccs = _.throttle(useOccs, 1000 / maxRenderFPS);
 var throttledRenderDocCounts = _.throttle(renderDocCounts, 1000 / 10);
@@ -45,10 +41,11 @@ var yearWidthScale = d3
 var docContainerSel = d3.select('.doc-container');
 var docFrameSel = d3.select('#doc-frame');
 var yearMapContainerSel = d3.select('.year-map-container');
-var monthMapContainerSel = d3.select('.month-map-container');
 var yearMapToggleSel = d3.select('#year-map-toggle-button');
-var monthMapToggleSel = d3.select('#month-map-toggle-button');
 var docCloseSel = d3.select('#doc-close-button');
+var projectUpdateButtonSel = d3.select('#change-project-button');
+var projectInput = d3.select('#project-input');
+var projectSelect = d3.select('#project-select');
 var monthContainer = d3.select('.month-map');
 var statusMessageSel = d3.select('#status-message');
 var dateDocCountSel = d3.select('#date-doc-count');
@@ -57,28 +54,46 @@ var yearLabelSel = d3.select('#current-year-label');
 
 // Handlers
 yearMapToggleSel.on('click', onYearMapToggleClick);
-monthMapToggleSel.on('click', onMonthMapToggleClick);
 docCloseSel.on('click', onDocCloseClick);
+projectUpdateButtonSel.on('click', onUpdateProjectClick);
 
-(async function init() {
+(function init() {
+  let hashParts = window.location.hash.split('=');
+  let projectId = hashParts.length > 1 ? hashParts[1] : undefined;
+  runWithProject(projectId);
+  setUpProjectSelect();
+})();
+
+function initState() {
+  occsByDateStringByMonthByYear = {};
+  counts = {
+    byYear: {},
+    byMonthByYear: {},
+    byDateString: {},
+  };
+
+  mostOccsInAYear = 0;
+  yearsUsedInDocs = [];
+  entityCount = 0;
+  docsWithoutDatesCount = 0;
+  docsWithDatesCount = 0;
+}
+
+async function runWithProject(projectId) {
   try {
+    initState();
     let errorHappenedWhileFetching = true;
-
-    let hashParts = window.location.hash.split('=');
-    let projectId = hashParts.length > 1 ? hashParts[1] : undefined;
-    console.log(projectId);
-
     var nextDocsURL;
 
     if (!projectId) {
       projectId = defaultProjectId;
-      const updatedURL = `${window.location.protocol}//${window.location.host}${window.location.pathname}#project=${projectId}`;
-      // Sync URL without triggering onhashchange.
-      window.history.pushState(null, null, updatedURL);
     }
+    const updatedURL = `${window.location.protocol}//${window.location.host}${window.location.pathname}#project=${projectId}`;
+    // Sync URL without triggering onhashchange.
+    window.history.pushState(null, null, updatedURL);
 
-    // if (projectId) {
-    // const projDocsURL = `https://api.www.documentcloud.org/api/projects/${projectId}/documents/`;
+    projectInput.node().value = projectId;
+
     nextDocsURL = `https://api.www.documentcloud.org/api/documents/search/?q=+project:${projectId}&version=2.0`;
     // } else {
     //   nextDocsURL = searchURL;
@@ -115,7 +130,7 @@ docCloseSel.on('click', onDocCloseClick);
   } catch (error) {
     handleError(error);
   }
-})();
+}
 
 function handleError(error) {
   // TODO
@@ -342,7 +357,8 @@ function getDateStringDictForDateString(monthDict, dateString) {
 function onDocItemClick(e, occ) {
   docFrameSel.attr(
     'src',
-    `https://embed.documentcloud.org/documents/${occ.document.id}/#document/p${occ.page + 1
+    `https://embed.documentcloud.org/documents/${occ.document.id}/#document/p${
+      occ.page + 1
     }`
   );
   docContainerSel.attr('title', occ.document.title);
@@ -374,19 +390,13 @@ function onYearMapToggleClick() {
   );
 }
 
-function onMonthMapToggleClick() {
-  monthMapContainerSel.classed(
-    'hidden',
-    !monthMapContainerSel.classed('hidden')
-  );
-  monthMapToggleSel.text(
-    monthMapContainerSel.classed('hidden') ? 'Show month map' : 'Hide month map'
-  );
-}
-
 function onDocCloseClick() {
   docContainerSel.classed('hidden', true);
   docCloseSel.classed('hidden', true);
+}
+
+function onUpdateProjectClick() {
+  runWithProject(projectInput.node().value);
 }
 
 function getIdForDate(dateString) {
@@ -573,4 +583,26 @@ function getDocCountText(year, month) {
     return `${count} dates in documents`;
   }
   return '';
+}
+
+async function setUpProjectSelect() {
+  try {
+    let res = await fetch(selfURL, defaultFetchOpts);
+    let userData = await res.json();
+    res = await fetch(
+      `https://api.www.documentcloud.org/api/projects/?user=${userData.id}&private=unknown&slug=&title=&document=`,
+      defaultFetchOpts
+    );
+    let projectData = await res.json();
+    let options = projectSelect.selectAll('option').data(projectData.results);
+    options.exit().remove();
+    let newOptions = options.enter().append('option');
+    newOptions
+      .merge(options)
+      .attr('value', (project) => project.id)
+      .text((project) => project.title)
+      .on('click', (project) => runWithProject(project.id));
+  } catch (error) {
+    handleError(error);
+  }
 }
