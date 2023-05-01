@@ -41,7 +41,6 @@ var yearWidthScale = d3
 var docContainerSel = d3.select('.doc-container');
 var docFrameSel = d3.select('#doc-frame');
 var yearMapContainerSel = d3.select('.year-map-container');
-var monthMapContainerSel = d3.select('.month-map-container');
 var yearMapToggleSel = d3.select('#year-map-toggle-button');
 var docCloseSel = d3.select('#doc-close-button');
 var projectUpdateButtonSel = d3.select('#change-project-button');
@@ -400,11 +399,6 @@ function onUpdateProjectClick() {
   runWithProject(projectInput.node().value);
 }
 
-function scrollOccurrenceIntoView(occ) {
-  var textSel = d3.select(`#${getIdForDate(occ.entity.date)} text`);
-  textSel.node().scrollIntoView({ behavior: 'smooth' });
-}
-
 function getIdForDate(dateString) {
   return 'docs-container-' + dateString.slice(0, 10);
 }
@@ -600,7 +594,7 @@ async function setUpProjectSelect() {
       defaultFetchOpts
     );
     let projectData = await res.json();
-    options = projectSelect.selectAll('option').data(projectData.results);
+    let options = projectSelect.selectAll('option').data(projectData.results);
     options.exit().remove();
     let newOptions = options.enter().append('option');
     newOptions
