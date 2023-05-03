@@ -154,6 +154,7 @@ line {
   flex-direction: column;
   border: var(--border-style);
   border-radius: var(--border-rad);
+  background-color: white;
 }
 
 .doc-container-centerer>* {
