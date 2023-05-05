@@ -25,3 +25,28 @@ It's in development, so you should know:
 - You can click a date to see a list of documents containing that date.
 - You can click on an item in that list to see that document.
 - The documents come in 25 at a time and get searched and graphed as they come in. Right now, it takes a while to complete, but there is a message in the corner that will tell you when it's done.
+
+## Architecture
+
+In order to avoid unnecessary build complexity so that this works as an example that can be used to build other web app add-ons, there is no bundler. The JavaScript files are not compiled, and instead, are referenced directly in `<script>` tags in `index.html`.
+
+The external dependencies are [D3](https://d3js.org/) and [lodash](https://lodash.com/), which are pulled in from CDNs by the web page.
+
+The two internal scripts are:
+- `vendor/find-dates.js`, an adaptation of the [find-dates package](https://github.com/hutsoninc/find-dates/) that makes the `findDates` function available as a global on the `window` object
+- `app.js`, which contains the main application code.
+
+Everything that can be "pre-baked" (as opposed to being dynamically created in JS) into the `index.html` file is. The major containers are:
+
+- `.control-pane`: This has controls for selecting projects and hiding and showing things as well as status messages. In `app.css`, its `position` is defined as `fixed`. So, it's always in the lower right corner no matter where the page is scrolled.
+- `.doc-container`: This contains the iframe that shows the document embed if one is selected. The element is hidden by default via CSS and shown (by removing the `hidden` class) when a document is selected from a list.
+-  The "timeline" containers. These house `<svg>`s upon which the various graphs are rendered.
+  - `.year-map-container` has a `.timeline-layer` `<g>` that the JS uses as a root for a bar chart representing how many date references appear in each year.
+  - `.month-map-container` has a `<g>` element for each month. These house ticks and text that show the date occurrences within the respective month.
+    - Each of those occurrent elements can be clicked to unhide the `.doc-lists-layer` for that month, which will be populated with a list of documents that have references to that date (e.g. Jan. 6, 2021).
+      - Each item in that list can be clicked to show an embed of that document.
+
+### Execution flow
+
+The code in `app.js` kicks off with the `init` IIFE.
+

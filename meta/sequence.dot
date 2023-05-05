@@ -1,0 +1,37 @@
+digraph {
+  graph [fontsize=12, fontname=Ubuntu, penwidth=2];
+  node [fontsize=12, fontname=Ubuntu, shape=rectangle, style=filled, color="#ffffff"];
+  edge [fontsize=16, fontname=Helvetica, color="#ffffff", fontcolor="#ffffff", penwidth=2];
+  nodesep=1;
+  overlap=false;
+  root=init;
+  dim=4;
+  mode=ipsep;
+  sep=0.4
+  bgcolor="#000418";
+
+  // Forward node declarations.
+  init [fillcolor="0.06 0.9 0.8"];
+  renderDocCounts [fillcolor="0.4 0.9 0.8"]
+  
+  init -> "Parse hash";
+  init -> runWithProject;
+  init -> setUpProjectSelect;
+  
+  setUpProjectSelect -> "Get user data";
+  setUpProjectSelect -> "Populate select control";
+  setUpProjectSelect -> "Set up option 'click' events";
+  
+  "Set up option 'click' events" -> runWithProject [style=dashed];
+  
+  runWithProject -> initState;
+  runWithProject -> "Sync URL to state";
+  runWithProject -> "Fetch docs for project";
+  runWithProject -> collectOccFromDocResult [headlabel="*", taillabel="1"];
+  
+  collectOccFromDocResult -> "Get page text";
+  collectOccFromDocResult -> getOccurrencesForPage [headlabel="*", taillabel="1"];
+  collectOccFromDocResult -> updateStateWithOcc [headlabel="*", taillabel="1"];
+  collectOccFromDocResult -> renderDocCounts;
+  
+}
