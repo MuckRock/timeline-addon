@@ -357,8 +357,7 @@ function getDateStringDictForDateString(monthDict, dateString) {
 function onDocItemClick(e, occ) {
   docFrameSel.attr(
     'src',
-    `https://embed.documentcloud.org/documents/${occ.document.id}/#document/p${
-      occ.page + 1
+    `https://embed.documentcloud.org/documents/${occ.document.id}/#document/p${occ.page + 1
     }`
   );
   docContainerSel.attr('title', occ.document.title);
@@ -376,11 +375,6 @@ function onYearClick(e, year) {
   currentYear = year;
   yearLabelSel.text(currentYear);
   renderMonthMap(year);
-
-  var occsByMonth = Object.values(occsByDateStringByMonthByYear[year]);
-  if (!occsByMonth || occsByMonth.length < 1) {
-    return;
-  }
 }
 
 function onYearMapToggleClick() {
