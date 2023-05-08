@@ -1,5 +1,5 @@
 digraph {
-  graph [fontsize=12, fontname=Ubuntu, penwidth=2];
+  graph [fontsize=12, fontname=Ubuntu, penwidth=2, rankdir="LR"];
   node [fontsize=12, fontname=Ubuntu, shape=rectangle, style=filled, color="#ffffff"];
   edge [fontsize=16, fontname=Helvetica, color="#ffffff", fontcolor="#ffffff", penwidth=2];
   nodesep=1;
@@ -11,8 +11,20 @@ digraph {
   bgcolor="#000418";
 
   // Forward node declarations.
-  init [fillcolor="0.06 0.9 0.8"];
-  renderDocCounts [fillcolor="0.4 0.9 0.8"]
+  init [fillcolor="0.14 0.9 0.9"];
+  initState [fillcolor="0.06 0.9 0.8"];
+  updateStateWithOcc [fillcolor="0.06 0.9 0.8"];
+  
+  renderDocCounts [fillcolor="0.4 0.9 0.8"];
+  renderYearMap [fillcolor="0.4 0.9 0.8"];
+  "Set up option 'click' events" [fillcolor="0.4 0.9 0.8"];
+  "Set up year bar 'click' events" [fillcolor="0.4 0.9 0.8"];
+  onYearClick [fillcolor="0.4 0.9 0.8"];
+  renderMonthMap [fillcolor="0.4 0.9 0.8"];
+  renderDayTimeline [fillcolor="0.4 0.9 0.8"];
+  "Set up tick 'click' events" [fillcolor="0.4 0.9 0.8"];
+  "Set up doc list item 'click' events" [fillcolor="0.4 0.9 0.8"];
+  onDocItemClick [fillcolor="0.4 0.9 0.8"];
   
   init -> "Parse hash";
   init -> runWithProject;
@@ -27,11 +39,23 @@ digraph {
   runWithProject -> initState;
   runWithProject -> "Sync URL to state";
   runWithProject -> "Fetch docs for project";
-  runWithProject -> collectOccFromDocResult [headlabel="*", taillabel="1"];
+  "Fetch docs for project" -> collectOccFromDocResult [headlabel="many", taillabel="1"];
   
   collectOccFromDocResult -> "Get page text";
-  collectOccFromDocResult -> getOccurrencesForPage [headlabel="*", taillabel="1"];
-  collectOccFromDocResult -> updateStateWithOcc [headlabel="*", taillabel="1"];
+  collectOccFromDocResult -> getOccurrencesForPage [headlabel="many", taillabel="1"];
+  collectOccFromDocResult -> updateStateWithOcc [headlabel="many", taillabel="1"];
   collectOccFromDocResult -> renderDocCounts;
   
+  getOccurrencesForPage -> findDates;
+  updateStateWithOcc -> useOccs;
+  
+  useOccs -> renderYearMap;
+  renderYearMap -> "Set up year bar 'click' events";
+  
+  "Set up year bar 'click' events" -> onYearClick [style=dashed];
+  onYearClick -> renderMonthMap [headlabel="many", taillabel="1"];
+  renderMonthMap -> renderDayTimeline [headlabel="*", taillabel="1"];
+  renderDayTimeline -> "Set up tick 'click' events";
+  renderDayTimeline -> "Set up doc list item 'click' events";
+  "Set up doc list item 'click' events" -> onDocItemClick;
 }

@@ -48,5 +48,26 @@ Everything that can be "pre-baked" (as opposed to being dynamically created in J
 
 ### Execution flow
 
-The code in `app.js` kicks off with the `init` IIFE.
+The code in `app.js` flows as in this diagram:
+
+![Sequence diagram](meta/sequence.svg)
+
+The parts that update the state are marked in orange and those that touch the DOM are in green.
+
+#### New docs sequence 
+
+The most notable sequence in the code is what you might think of as the "new docs sequence":
+
+- When a project is selected in the select control or a new project id is entered into the input control, `runWithProject` (re)initializes the state, starts getting the documents from the project. 
+- Whenever new docs come in from the API, `collectOccFromDocResult` makes occurrence objects from the results and calls (via throttling) `updateStateWithOcc`, which calls `renderYearMap`, which sets up click events.
+- The sequence rests here until the user clicks a year bar.
+- A year click triggers calls to `renderMonthMap` and `renderDayTimeline` which sets up click events on the day "tick" elements.
+- The sequence rests here until the user click a day "tick".
+- A day tick click triggers calls to show the doc list items (which represent the date occurrences that happen in that day).
+- The sequence rests here until the user clicks a doc list item.
+- When the user clicks a doc list item, `onDocItemClick` shows the embed iframe and tells it to load the relevant document.
+
+### Rendering
+
+Whenever something is to be rendered to the DOM, the [D3 exit-enter-update pattern](https://bost.ocks.org/mike/join/). The essential idea behind this is that you make the representations under a particular DOM subtree match the array of data that you have by providing you with lists of 1) what's in the DOM that no longer matches the current data, 2) what's in your data that is not yet represented in the DOM, and 3) what's in the DOM that does line up with the current data. Then, you use D3 APIs (or whatever you want), to make the DOM match you data by removing, adding, and updating DOM elements.
 
