@@ -71,5 +71,5 @@ The most notable sequence in the code is what you might think of as the "new doc
 
 ### Rendering
 
-Whenever something is to be rendered to the DOM, the [D3 exit-enter-update pattern](https://bost.ocks.org/mike/join/). The essential idea behind this is that you make the representations under a particular DOM subtree match the array of data that you have by providing you with lists of 1) what's in the DOM that no longer matches the current data, 2) what's in your data that is not yet represented in the DOM, and 3) what's in the DOM that does line up with the current data. Then, you use D3 APIs (or whatever you want), to make the DOM match you data by removing, adding, and updating DOM elements.
+Whenever something is to be rendered to the DOM, we use the [D3 exit-enter-update pattern](https://bost.ocks.org/mike/join/). The essential idea behind this is that you make the representations under a particular DOM subtree match the array of data that you have by providing you with lists of 1) what's in the DOM that no longer matches the current data, 2) what's in your data that is not yet represented in the DOM, and 3) what's in the DOM that does line up with the current data. Then, you use D3 APIs (or whatever you want), to make the DOM match you data by removing, adding, and updating DOM elements.
 
