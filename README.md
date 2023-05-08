@@ -52,6 +52,8 @@ The code in `app.js` flows as in this diagram:
 
 ![Sequence diagram](meta/sequence.svg)
 
+(Click through for a larger version.)
+
 The parts that update the state are marked in orange and those that touch the DOM are in green.
 
 #### New docs sequence 
