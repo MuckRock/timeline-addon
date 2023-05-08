@@ -1,6 +1,6 @@
 # timeline-addon
 
-A web app that goes through the logged-in user's documents for dates, then uses them to build a timeline.
+A web app that goes through a project's documents for dates, then uses them to build a timeline.
 
 ## Local dev
 
@@ -20,7 +20,7 @@ Right now, it's at: https://muckrock.github.io/timeline-addon
 
 It's in development, so you should know:
 
-- You need to be logged in on documentcloud.org before using it.
+- You need to be logged in on documentcloud.org if you want it to see private projects and documents.
 - The left column will contain years found in the documents. Click on bars there to change the frame of the month column next to it and to scroll the dates column next to it so that dates from that year scroll into view.
 - You can click a date to see a list of documents containing that date.
 - You can click on an item in that list to see that document.
